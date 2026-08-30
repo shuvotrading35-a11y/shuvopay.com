@@ -5,14 +5,17 @@ RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
 
 WORKDIR /app
 
-# Install system deps
+# Install system dependencies required for Python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq-dev gcc curl \
+    build-essential \
+    libpq-dev \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps first (layer cache)
+# Install Python dependencies first (layer cache)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
@@ -20,6 +23,7 @@ COPY . .
 # Set ownership
 RUN chown -R appuser:appgroup /app
 
+# Run as non-root user
 USER appuser
 
 EXPOSE 8000
