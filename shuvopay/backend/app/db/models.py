@@ -138,7 +138,7 @@ class Invoice(TimestampMixin, SoftDeleteMixin, Base):
     # status: pending | paid | review_required | unmatched | cancelled
     time_window_minutes = Column(Integer, default=30, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
-    metadata = Column(JSONB, nullable=True)  # custom merchant metadata
+    invoice_metadata = Column("metadata", JSONB, nullable=True)  # custom merchant metadata
 
     merchant = relationship("Merchant", back_populates="invoices")
     payment_matches = relationship("PaymentMatch", back_populates="invoice")
