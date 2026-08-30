@@ -138,7 +138,7 @@ class Invoice(TimestampMixin, SoftDeleteMixin, Base):
     # status: pending | paid | review_required | unmatched | cancelled
     time_window_minutes = Column(Integer, default=30, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
-    metadata = Column(JSONB, nullable=True)  # custom merchant metadata
+    invoice_metadata = Column("metadata", JSONB, nullable=True)  # custom merchant metadata
 
     merchant = relationship("Merchant", back_populates="invoices")
     payment_matches = relationship("PaymentMatch", back_populates="invoice")
@@ -202,7 +202,7 @@ class AuditLog(Base):
     resource_id = Column(String(255), nullable=True)
     ip_address = Column(INET, nullable=True)
     user_agent = Column(Text, nullable=True)
-    metadata = Column(JSONB, nullable=True)
+    audit_metadata = Column("metadata", JSONB, nullable=True)  # renamed: metadata → audit_metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 
     actor = relationship("User", back_populates="audit_logs")
