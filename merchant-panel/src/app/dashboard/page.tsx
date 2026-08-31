@@ -21,7 +21,6 @@ export default function DashboardPage() {
   const onWsMessage = useCallback((data: any) => {
     if (data.event === "payment.confirmed") {
       setLiveEvents((prev) => [data, ...prev].slice(0, 10));
-      // Refresh stats on payment
       loadDashboard();
     }
   }, []);
@@ -31,11 +30,11 @@ export default function DashboardPage() {
   const loadDashboard = useCallback(async () => {
     try {
       const [statsData, txData] = await Promise.all([
-        api.get("/merchant/dashboard"),
-        api.get("/merchant/transactions?page=1&page_size=5"),
+        api.get("/merchant/dashboard") as Promise<any>,
+        api.get("/merchant/transactions?page=1&page_size=5") as Promise<any>,
       ]);
       setStats(statsData);
-      setTransactions(txData.items ?? []);
+      setTransactions(txData?.items ?? []);
     } catch (e) {
       console.error("Dashboard load error", e);
     } finally {
@@ -45,7 +44,6 @@ export default function DashboardPage() {
 
   useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
-  // Mock chart data — in production, fetch from analytics endpoint
   const chartData = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
