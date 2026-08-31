@@ -9,8 +9,21 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 from app.db.models import Base
 
+# Read DATABASE_URL with a clear error if missing
+database_url = os.environ.get("DATABASE_URL")
+if not database_url:
+    raise RuntimeError(
+        "DATABASE_URL environment variable is not set.\n"
+        "Set it in your deployment platform or .env file.\n"
+        "Example: postgresql+asyncpg://user:pass@host:5432/dbname"
+    )
+
+# Ensure asyncpg driver is used (alembic async requires it)
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+
 config = context.config
-config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
+config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
