@@ -4,8 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ??
-  "http://localhost:8000/api/v1";
+  "https://shuvopaycom-production.up.railway.app/api/v1";
 
 export default function LoginPage() {
   const router = useRouter();
