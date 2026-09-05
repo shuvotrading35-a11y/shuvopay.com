@@ -21,99 +21,112 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Create Gradle wrapper properties
+      - name: Setup Gradle wrapper
         run: |
           mkdir -p android/gradle/wrapper
-          printf 'distributionBase=GRADLE_USER_HOME\ndistributionPath=wrapper/dists\ndistributionUrl=https\\://services.gradle.org/distributions/gradle-8.9-bin.zip\nnetworkTimeout=10000\nvalidateDistributionUrl=true\nzipStoreBase=GRADLE_USER_HOME\nzipStorePath=wrapper/dists\n' > android/gradle/wrapper/gradle-wrapper.properties
-
-      - name: Download Gradle wrapper
-        run: |
           curl -fsSL -o android/gradlew https://raw.githubusercontent.com/gradle/gradle/v8.9.0/gradlew
           chmod +x android/gradlew
           curl -fsSL -L -o android/gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.9.0/gradle/wrapper/gradle-wrapper.jar
+          echo "distributionBase=GRADLE_USER_HOME" > android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionPath=wrapper/dists" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-8.9-bin.zip" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "networkTimeout=10000" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "validateDistributionUrl=true" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "zipStoreBase=GRADLE_USER_HOME" >> android/gradle/wrapper/gradle-wrapper.properties
+          echo "zipStorePath=wrapper/dists" >> android/gradle/wrapper/gradle-wrapper.properties
 
-      - name: Create settings.gradle.kts
+      - name: Setup root Gradle files
         run: |
-          printf 'pluginManagement {\n    repositories {\n        google()\n        mavenCentral()\n        gradlePluginPortal()\n    }\n}\ndependencyResolutionManagement {\n    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\nrootProject.name = "ShuvoPay"\ninclude(":app")\n' > android/settings.gradle.kts
+          echo 'pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }' > android/settings.gradle.kts
+          echo 'dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }' >> android/settings.gradle.kts
+          echo 'rootProject.name = "ShuvoPay"' >> android/settings.gradle.kts
+          echo 'include(":app")' >> android/settings.gradle.kts
+          echo 'plugins {' > android/build.gradle.kts
+          echo '    alias(libs.plugins.android.application) apply false' >> android/build.gradle.kts
+          echo '    alias(libs.plugins.kotlin.android) apply false' >> android/build.gradle.kts
+          echo '    alias(libs.plugins.kotlin.compose) apply false' >> android/build.gradle.kts
+          echo '    alias(libs.plugins.hilt) apply false' >> android/build.gradle.kts
+          echo '    alias(libs.plugins.ksp) apply false' >> android/build.gradle.kts
+          echo '    alias(libs.plugins.kotlin.serialization) apply false' >> android/build.gradle.kts
+          echo '}' >> android/build.gradle.kts
+          echo 'org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8' > android/gradle.properties
+          echo 'android.useAndroidX=true' >> android/gradle.properties
+          echo 'kotlin.code.style=official' >> android/gradle.properties
+          echo 'android.nonTransitiveRClass=true' >> android/gradle.properties
 
-      - name: Create build.gradle.kts
-        run: |
-          printf 'plugins {\n    alias(libs.plugins.android.application) apply false\n    alias(libs.plugins.kotlin.android) apply false\n    alias(libs.plugins.kotlin.compose) apply false\n    alias(libs.plugins.hilt) apply false\n    alias(libs.plugins.ksp) apply false\n    alias(libs.plugins.kotlin.serialization) apply false\n}\n' > android/build.gradle.kts
-
-      - name: Create gradle.properties
-        run: |
-          printf 'org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8\nandroid.useAndroidX=true\nkotlin.code.style=official\nandroid.nonTransitiveRClass=true\n' > android/gradle.properties
+      - name: Copy libs.versions.toml
+        run: cp android/gradle/libs.versions.toml android/gradle/libs.versions.toml.bak 2>/dev/null || true
 
       - name: Create libs.versions.toml
-        run: |
-          cat > android/gradle/libs.versions.toml << 'TOML'
-[versions]
-agp = "8.5.2"
-kotlin = "2.0.21"
-coreKtx = "1.13.1"
-lifecycle = "2.8.6"
-activityCompose = "1.9.2"
-composeBom = "2024.09.03"
-navigationCompose = "2.8.1"
-hilt = "2.52"
-hiltWork = "1.2.0"
-ksp = "2.0.21-1.0.27"
-room = "2.6.1"
-work = "2.9.1"
-retrofit = "2.11.0"
-okhttp = "4.12.0"
-kotlinxSerialization = "1.7.3"
-securityCrypto = "1.1.0-alpha06"
-timber = "5.0.1"
-junit = "4.13.2"
-mockk = "1.13.12"
-coroutinesTest = "1.9.0"
-turbine = "1.1.0"
-androidxJunit = "1.2.1"
-espresso = "3.6.1"
+        env:
+          TOML_CONTENT: |
+            [versions]
+            agp = "8.5.2"
+            kotlin = "2.0.21"
+            coreKtx = "1.13.1"
+            lifecycle = "2.8.6"
+            activityCompose = "1.9.2"
+            composeBom = "2024.09.03"
+            navigationCompose = "2.8.1"
+            hilt = "2.52"
+            hiltWork = "1.2.0"
+            ksp = "2.0.21-1.0.27"
+            room = "2.6.1"
+            work = "2.9.1"
+            retrofit = "2.11.0"
+            okhttp = "4.12.0"
+            kotlinxSerialization = "1.7.3"
+            securityCrypto = "1.1.0-alpha06"
+            timber = "5.0.1"
+            junit = "4.13.2"
+            mockk = "1.13.12"
+            coroutinesTest = "1.9.0"
+            turbine = "1.1.0"
+            androidxJunit = "1.2.1"
+            espresso = "3.6.1"
 
-[libraries]
-androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
-androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
-androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
-androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
-androidx-ui = { group = "androidx.compose.ui", name = "ui" }
-androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
-androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
-androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
-androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
-androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
-hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
-androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltWork" }
-androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
-androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
-androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
-androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
-androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
-retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
-retrofit-kotlinx-serialization = { group = "com.jakewharton.retrofit", name = "retrofit2-kotlinx-serialization-converter", version = "1.0.0" }
-okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
-okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
-kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
-androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
-timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
-junit = { group = "junit", name = "junit", version.ref = "junit" }
-mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
-kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
-turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
-androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
-androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
-androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+            [libraries]
+            androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+            androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
+            androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+            androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+            androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+            androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+            androidx-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
+            androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
+            androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+            androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycle" }
+            hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+            hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
+            androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltWork" }
+            androidx-hilt-work = { group = "androidx.hilt", name = "hilt-work", version.ref = "hiltWork" }
+            androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+            androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+            androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+            androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+            retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+            retrofit-kotlinx-serialization = { group = "com.jakewharton.retrofit", name = "retrofit2-kotlinx-serialization-converter", version = "1.0.0" }
+            okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+            okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+            kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+            androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+            timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+            junit = { group = "junit", name = "junit", version.ref = "junit" }
+            mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+            kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "coroutinesTest" }
+            turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
+            androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxJunit" }
+            androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso" }
+            androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 
-[plugins]
-android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
-kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-TOML
+            [plugins]
+            android-application = { id = "com.android.application", version.ref = "agp" }
+            kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+            kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+            hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+            ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+            kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+        run: echo "$TOML_CONTENT" > android/gradle/libs.versions.toml
 
       - name: Build Debug APK
         run: |
