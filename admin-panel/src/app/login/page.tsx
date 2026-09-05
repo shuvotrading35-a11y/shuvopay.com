@@ -9,7 +9,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://shuvopaycom-production.up.railway.app/api/v1";
 
   async function handleLogin() {
     setLoading(true);
