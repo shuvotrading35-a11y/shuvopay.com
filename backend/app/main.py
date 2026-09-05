@@ -88,7 +88,8 @@ async def readiness():
 
     try:
         async with async_session() as session:
-            await session.execute("SELECT 1")
+            from sqlalchemy import text
+await session.execute(text("SELECT 1"))
         redis = await get_redis()
         await redis.ping()
         return {"status": "ready", "db": "ok", "redis": "ok"}
