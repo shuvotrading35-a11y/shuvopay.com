@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 
-const WS_URL = process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8000";
+const WS_URL = "wss://shuvopaycom-production.up.railway.app";
 
 export function useWebSocket(onMessage: (data: any) => void) {
   const ws = useRef<WebSocket | null>(null);
