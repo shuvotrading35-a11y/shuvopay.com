@@ -93,7 +93,7 @@ class SecurePrefs @Inject constructor(
         private const val KEY_DEVICE_API_KEY = "device_api_key"
         private const val KEY_SERVER_URL = "server_url"
         private const val KEY_DEVICE_ID = "device_id"
-        private const val DEFAULT_SERVER_URL = "https://api.shuvopay.com"
+        private const val DEFAULT_SERVER_URL = "https://shuvopaycom-production.up.railway.app"
     }
 
     private val prefs by lazy {

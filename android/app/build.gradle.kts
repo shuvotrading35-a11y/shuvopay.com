@@ -25,7 +25,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "BASE_URL", "\"https://api.shuvopay.com\"")
+            buildConfigField("String", "BASE_URL", "\"https://shuvopaycom-production.up.railway.app\"")
         }
         debug {
             isDebuggable = true
