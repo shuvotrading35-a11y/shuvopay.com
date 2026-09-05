@@ -22,8 +22,8 @@ class Settings(BaseSettings):
     REDIS_URL: RedisDsn
 
     # JWT (RS256)
-    JWT_PRIVATE_KEY: str          # PEM format
-    JWT_PUBLIC_KEY: str           # PEM format
+    JWT_PRIVATE_KEY: str = ""
+		  JWT_PUBLIC_KEY: str = ""
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
