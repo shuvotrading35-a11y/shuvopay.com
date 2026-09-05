@@ -21,69 +21,32 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle Wrapper
+      - name: Create Gradle wrapper properties
         run: |
-          cd android
-          mkdir -p gradle/wrapper
+          mkdir -p android/gradle/wrapper
+          printf 'distributionBase=GRADLE_USER_HOME\ndistributionPath=wrapper/dists\ndistributionUrl=https\\://services.gradle.org/distributions/gradle-8.9-bin.zip\nnetworkTimeout=10000\nvalidateDistributionUrl=true\nzipStoreBase=GRADLE_USER_HOME\nzipStorePath=wrapper/dists\n' > android/gradle/wrapper/gradle-wrapper.properties
 
-          curl -fsSL -o gradlew https://raw.githubusercontent.com/gradle/gradle/v8.9.0/gradlew
-          chmod +x gradlew
-
-          curl -fsSL -L -o gradle/wrapper/gradle-wrapper.jar \
-            https://github.com/gradle/gradle/raw/v8.9.0/gradle/wrapper/gradle-wrapper.jar
-
-          cat > gradle/wrapper/gradle-wrapper.properties << 'PROPS'
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.9-bin.zip
-networkTimeout=10000
-validateDistributionUrl=true
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
-PROPS
-
-      - name: Create root Gradle files
+      - name: Download Gradle wrapper
         run: |
-          cd android
+          curl -fsSL -o android/gradlew https://raw.githubusercontent.com/gradle/gradle/v8.9.0/gradlew
+          chmod +x android/gradlew
+          curl -fsSL -L -o android/gradle/wrapper/gradle-wrapper.jar https://github.com/gradle/gradle/raw/v8.9.0/gradle/wrapper/gradle-wrapper.jar
 
-          cat > settings.gradle.kts << 'EOF'
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-rootProject.name = "ShuvoPay"
-include(":app")
-EOF
+      - name: Create settings.gradle.kts
+        run: |
+          printf 'pluginManagement {\n    repositories {\n        google()\n        mavenCentral()\n        gradlePluginPortal()\n    }\n}\ndependencyResolutionManagement {\n    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)\n    repositories {\n        google()\n        mavenCentral()\n    }\n}\nrootProject.name = "ShuvoPay"\ninclude(":app")\n' > android/settings.gradle.kts
 
-          cat > build.gradle.kts << 'EOF'
-plugins {
-    alias(libs.plugins.android.application) apply false
-    alias(libs.plugins.kotlin.android) apply false
-    alias(libs.plugins.kotlin.compose) apply false
-    alias(libs.plugins.hilt) apply false
-    alias(libs.plugins.ksp) apply false
-    alias(libs.plugins.kotlin.serialization) apply false
-}
-EOF
+      - name: Create build.gradle.kts
+        run: |
+          printf 'plugins {\n    alias(libs.plugins.android.application) apply false\n    alias(libs.plugins.kotlin.android) apply false\n    alias(libs.plugins.kotlin.compose) apply false\n    alias(libs.plugins.hilt) apply false\n    alias(libs.plugins.ksp) apply false\n    alias(libs.plugins.kotlin.serialization) apply false\n}\n' > android/build.gradle.kts
 
-          cat > gradle.properties << 'EOF'
-org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-android.useAndroidX=true
-kotlin.code.style=official
-android.nonTransitiveRClass=true
-EOF
+      - name: Create gradle.properties
+        run: |
+          printf 'org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8\nandroid.useAndroidX=true\nkotlin.code.style=official\nandroid.nonTransitiveRClass=true\n' > android/gradle.properties
 
-          cat > gradle/libs.versions.toml << 'EOF'
+      - name: Create libs.versions.toml
+        run: |
+          cat > android/gradle/libs.versions.toml << 'TOML'
 [versions]
 agp = "8.5.2"
 kotlin = "2.0.21"
@@ -150,7 +113,7 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-EOF
+TOML
 
       - name: Build Debug APK
         run: |
