@@ -6,6 +6,7 @@ import structlog
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
+from sqlalchemy import text
 
 from app.api.v1 import router as api_v1_router
 from app.core.config import settings
@@ -88,8 +89,7 @@ async def readiness():
 
     try:
         async with async_session() as session:
-            from sqlalchemy import text
-await session.execute(text("SELECT 1"))
+            await session.execute(text("SELECT 1"))
         redis = await get_redis()
         await redis.ping()
         return {"status": "ready", "db": "ok", "redis": "ok"}
