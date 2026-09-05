@@ -1,25 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    load();
+  }, []);
+
   const load = async () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      router.push("/login");
+      return;
+    }
     try {
       const data = await api.get("/admin/dashboard");
       setStats(data);
+    } catch (e: any) {
+      if (e.message?.includes("401") || e.message?.includes("403")) {
+        localStorage.removeItem("access_token");
+        router.push("/login");
+      }
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => { load(); }, []);
 
   if (loading) return (
     <div className="flex h-full items-center justify-center">
@@ -34,7 +53,13 @@ export default function AdminDashboardPage() {
           <h1 className="text-2xl font-bold">System Dashboard</h1>
           <p className="text-sm text-muted-foreground">ShuvoPay Admin — full system visibility</p>
         </div>
-        <Button size="sm" onClick={load}>Refresh</Button>
+        <div className="flex gap-2">
+          <Button size="sm" onClick={load}>Refresh</Button>
+          <Button size="sm" variant="outline" onClick={() => {
+            localStorage.removeItem("access_token");
+            router.push("/login");
+          }}>Logout</Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
