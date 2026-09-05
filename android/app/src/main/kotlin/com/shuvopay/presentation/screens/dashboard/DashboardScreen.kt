@@ -113,7 +113,7 @@ private fun DeviceStatusCard(queueDepth: Int, pingLatency: Long?) {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Icon(
-                    Icons.Default.Circle,
+                    Icons.Default.FiberManualRecord,
                     contentDescription = null,
                     tint = if (pingLatency != null) Color(0xFF4CAF50) else Color(0xFFFFC107),
                     modifier = Modifier.size(12.dp),
@@ -159,12 +159,12 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
 private fun QuickActions(onForceSync: () -> Unit, onTestConnection: () -> Unit, onViewLogs: () -> Unit) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         OutlinedButton(onClick = onForceSync, modifier = Modifier.weight(1f)) {
-            Icon(Icons.Default.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
             Text("Sync")
         }
         OutlinedButton(onClick = onTestConnection, modifier = Modifier.weight(1f)) {
-            Icon(Icons.Default.NetworkCheck, contentDescription = null, modifier = Modifier.size(16.dp))
+            Icon(Icons.Default.Wifi, contentDescription = null, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
             Text("Ping")
         }
@@ -203,7 +203,7 @@ private fun SmsActivityRow(sms: SmsQueueEntity) {
             )
         },
         leadingContent = {
-            Icon(Icons.Default.Sms, contentDescription = null,
+            Icon(Icons.Default.Message, contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary)
         },
         trailingContent = {
