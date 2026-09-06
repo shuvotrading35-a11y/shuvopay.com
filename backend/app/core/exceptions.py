@@ -1,3 +1,4 @@
+import uuid
 import structlog
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -38,6 +39,17 @@ class RateLimitError(AppException):
         super().__init__(429, "Rate limit exceeded", "RATE_LIMITED")
 
 
+def make_serializable(obj):
+    if isinstance(obj, dict):
+        return {k: make_serializable(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_serializable(i) for i in obj]
+    elif isinstance(obj, uuid.UUID):
+        return str(obj)
+    else:
+        return obj
+
+
 def register_exception_handlers(app: FastAPI):
     @app.exception_handler(AppException)
     async def app_exception_handler(request: Request, exc: AppException):
@@ -58,7 +70,7 @@ def register_exception_handlers(app: FastAPI):
     async def validation_exception_handler(request: Request, exc: ValidationError):
         return JSONResponse(
             status_code=422,
-            content={"detail": exc.errors()},
+            content={"detail": make_serializable(exc.errors())},
         )
 
     @app.exception_handler(Exception)
