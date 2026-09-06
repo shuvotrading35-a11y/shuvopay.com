@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import com.shuvopay.presentation.screens.auth.LoginScreen
 import com.shuvopay.presentation.screens.auth.PermissionExplanationScreen
 import com.shuvopay.presentation.screens.dashboard.DashboardScreen
+import com.shuvopay.presentation.screens.logs.SmsLogsScreen
 
 sealed class Screen(val route: String) {
     data object Splash : Screen("splash")
@@ -44,7 +45,6 @@ fun AppNavHost(
                     }
                 },
                 onDenied = {
-                    // Navigate to dashboard anyway — limited functionality
                     navController.navigate(Screen.Dashboard.route) {
                         popUpTo(Screen.Permissions.route) { inclusive = true }
                     }
@@ -55,6 +55,12 @@ fun AppNavHost(
         composable(Screen.Dashboard.route) {
             DashboardScreen(
                 onViewLogs = { navController.navigate(Screen.SmsLogs.route) },
+            )
+        }
+
+        composable(Screen.SmsLogs.route) {
+            SmsLogsScreen(
+                onBack = { navController.popBackStack() }
             )
         }
     }

@@ -36,6 +36,7 @@ class DashboardViewModel @Inject constructor(
     private val db: AppDatabase,
     private val deviceApi: DeviceApi,
     private val securePrefs: SecurePrefs,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<DashboardUiState>(DashboardUiState.Loading)
@@ -92,11 +93,9 @@ class DashboardViewModel @Inject constructor(
     private fun forceSync() {
         viewModelScope.launch {
             try {
-                // Trigger immediate upload
-                com.shuvopay.worker.SmsUploadWorker.enqueue(
-                    /* context injected via application */ TODO()
-                )
+                com.shuvopay.worker.SmsUploadWorker.enqueue(appContext)
                 Timber.i("DashboardViewModel: force sync triggered")
+                loadStats()
             } catch (e: Exception) {
                 Timber.e(e, "DashboardViewModel: force sync failed")
             }
