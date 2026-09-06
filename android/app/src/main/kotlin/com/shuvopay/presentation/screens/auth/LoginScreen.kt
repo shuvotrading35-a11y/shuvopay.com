@@ -19,6 +19,7 @@ import com.shuvopay.presentation.viewmodel.AuthUiState
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
+    onRequires2FA: (email: String, password: String) -> Unit = { _, _ -> },
     viewModel: AuthViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()

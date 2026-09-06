@@ -27,6 +27,7 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun DashboardScreen(
     onViewLogs: () -> Unit,
+    onSettings: () -> Unit = {},
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -41,6 +42,9 @@ fun DashboardScreen(
                 actions = {
                     IconButton(onClick = { viewModel.onIntent(DashboardIntent.Refresh) }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                    }
+                    IconButton(onClick = onSettings) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings")
                     }
                 }
             )
