@@ -3,7 +3,7 @@ from typing import Annotated
 
 import structlog
 from fastapi import APIRouter, Depends, Header, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,6 +39,11 @@ class InvoiceOut(BaseModel):
     status: str
     expires_at: datetime
     created_at: datetime
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def coerce_uuid(cls, v):
+        return str(v)
 
     class Config:
         from_attributes = True
@@ -219,7 +224,6 @@ async def public_payment_status(
     if not invoice or invoice.merchant_id != merchant.id:
         raise NotFoundError("Invoice")
 
-    # Get latest match if any
     match_result = await db.execute(
         select(PaymentMatch, SmsLog)
         .join(SmsLog, PaymentMatch.sms_log_id == SmsLog.id)
@@ -275,14 +279,12 @@ async def approve_match(
     match.reviewed_at = datetime.now(timezone.utc)
     db.add(match)
 
-    # Update invoice
     inv_result = await db.execute(select(Invoice).where(Invoice.id == match.invoice_id))
     invoice = inv_result.scalar_one_or_none()
     if invoice:
         invoice.status = "paid"
         db.add(invoice)
 
-    # Update sms_log
     sms_result = await db.execute(select(SmsLog).where(SmsLog.id == match.sms_log_id))
     sms = sms_result.scalar_one_or_none()
     if sms:
@@ -298,7 +300,6 @@ async def approve_match(
     )
     db.add(audit)
 
-    # Re-enqueue webhook delivery
     from app.workers.webhook_worker import enqueue_webhook
     if invoice:
         await enqueue_webhook(match_id)
@@ -323,7 +324,6 @@ async def reject_match(
     match.reviewed_at = datetime.now(timezone.utc)
     db.add(match)
 
-    # Revert invoice to pending
     inv_result = await db.execute(select(Invoice).where(Invoice.id == match.invoice_id))
     invoice = inv_result.scalar_one_or_none()
     if invoice and invoice.status == "review_required":
