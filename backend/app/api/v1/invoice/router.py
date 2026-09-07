@@ -66,6 +66,11 @@ class ReviewActionRequest(BaseModel):
     reason: str
 
 
+class TrxVerifyRequest(BaseModel):
+    invoice_id: str
+    transaction_id: str
+
+
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 async def _get_merchant_for_user(user, db) -> Merchant:
@@ -95,11 +100,8 @@ async def _get_merchant_by_api_key(api_key_raw: str, db) -> Merchant:
     if not row:
         raise UnauthorizedError("Invalid or expired API key")
     api_key_obj, merchant = row
-
-    # Update last_used
     api_key_obj.last_used_at = now
     db.add(api_key_obj)
-
     return merchant
 
 
@@ -243,6 +245,75 @@ async def public_payment_status(
     )
 
 
+# ─── TrxID Verify (Public) ──────────────────────────────────────────────────
+
+@router.post("/payment/verify-trx")
+async def verify_by_trxid(
+    body: TrxVerifyRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    # Invoice check
+    result = await db.execute(
+        select(Invoice).where(
+            Invoice.id == body.invoice_id,
+            Invoice.deleted_at.is_(None)
+        )
+    )
+    invoice = result.scalar_one_or_none()
+    if not invoice:
+        raise NotFoundError("Invoice")
+
+    if invoice.status == "paid":
+        return {"status": "already_paid", "message": "এই invoice আগেই paid হয়েছে"}
+
+    if invoice.status == "cancelled":
+        raise ConflictError("Invoice cancelled")
+
+    # Expires check
+    if invoice.expires_at < datetime.now(timezone.utc):
+        raise ConflictError("Invoice expired")
+
+    # TrxID SMS এ আছে কিনা check
+    sms_result = await db.execute(
+        select(SmsLog).where(
+            SmsLog.merchant_id == invoice.merchant_id,
+            SmsLog.transaction_id == body.transaction_id,
+        )
+    )
+    sms = sms_result.scalar_one_or_none()
+
+    if not sms:
+        return {
+            "status": "not_found",
+            "message": "Transaction ID পাওয়া যায়নি। SMS আসতে একটু সময় লাগতে পারে।"
+        }
+
+    # Amount match check
+    if float(sms.amount) != float(invoice.amount):
+        return {
+            "status": "amount_mismatch",
+            "message": f"Amount মিলছে না। Invoice: {invoice.amount}, SMS: {sms.amount}"
+        }
+
+    # Mark paid
+    invoice.status = "paid"
+    db.add(invoice)
+    sms.status = "matched"
+    db.add(sms)
+
+    audit = AuditLog(
+        actor_id=None,
+        action="invoice_paid_trx_verify",
+        resource_type="invoice",
+        resource_id=str(invoice.id),
+        metadata={"transaction_id": body.transaction_id},
+    )
+    db.add(audit)
+
+    log.info("invoice_paid_trx", invoice_id=str(invoice.id), trx_id=body.transaction_id)
+    return {"status": "paid", "message": "Payment সফলভাবে verify হয়েছে! ✅"}
+
+
 # ─── Admin Match Controls ────────────────────────────────────────────────────
 
 @router.post("/payment/match", status_code=202)
@@ -339,59 +410,3 @@ async def reject_match(
     )
     db.add(audit)
     return {"status": "rejected"}
-
-class TrxVerifyRequest(BaseModel):
-    invoice_id: str
-    transaction_id: str
-
-@router.post("/payment/verify")
-async def verify_by_trxid(
-    body: TrxVerifyRequest,
-    x_api_key: Annotated[str | None, Header()] = None,
-    db: AsyncSession = Depends(get_db),
-):
-    if not x_api_key:
-        raise UnauthorizedError("X-Api-Key header required")
-
-    merchant = await _get_merchant_by_api_key(x_api_key, db)
-
-    # Invoice check
-    result = await db.execute(
-        select(Invoice).where(
-            Invoice.id == body.invoice_id,
-            Invoice.merchant_id == merchant.id,
-            Invoice.deleted_at.is_(None)
-        )
-    )
-    invoice = result.scalar_one_or_none()
-    if not invoice:
-        raise NotFoundError("Invoice")
-
-    if invoice.status == "paid":
-        return {"status": "already_paid"}
-
-    if invoice.status == "cancelled":
-        raise ConflictError("Invoice cancelled")
-
-    # TrxID SMS এ আছে কিনা check
-    from datetime import datetime, timezone
-    sms_result = await db.execute(
-        select(SmsLog).where(
-            SmsLog.merchant_id == merchant.id,
-            SmsLog.transaction_id == body.transaction_id,
-            SmsLog.amount == invoice.amount,
-            SmsLog.provider == invoice.provider,
-        )
-    )
-    sms = sms_result.scalar_one_or_none()
-
-    if not sms:
-        return {"status": "not_found", "message": "Transaction ID পাওয়া যায়নি"}
-
-    # Mark paid
-    invoice.status = "paid"
-    db.add(invoice)
-    sms.status = "matched"
-    db.add(sms)
-
-    return {"status": "paid", "message": "Payment verified!"}
