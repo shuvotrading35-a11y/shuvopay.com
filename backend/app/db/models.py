@@ -30,10 +30,10 @@ class SoftDeleteMixin:
 class User(TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(50), nullable=False, default="merchant")  # merchant | admin
+    role = Column(String(50), nullable=False, default="merchant")
     totp_secret = Column(String(255), nullable=True)
     totp_enabled = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
@@ -45,11 +45,11 @@ class User(TimestampMixin, SoftDeleteMixin, Base):
 class Merchant(TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "merchants"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    user_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     webhook_url = Column(String(2048), nullable=True)
-    webhook_secret_hash = Column(String(255), nullable=True)  # bcrypt — revealed only once
+    webhook_secret_hash = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
 
     user = relationship("User", back_populates="merchant")
@@ -64,12 +64,12 @@ class Merchant(TimestampMixin, SoftDeleteMixin, Base):
 class Device(TimestampMixin, Base):
     __tablename__ = "devices"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=False, index=True)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    merchant_id = Column(UUID(as_uuid=False), ForeignKey("merchants.id"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     fingerprint = Column(String(512), nullable=False, unique=True)
     fcm_token = Column(String(512), nullable=True)
-    status = Column(String(50), default="offline")  # online | offline | syncing
+    status = Column(String(50), default="offline")
     last_seen = Column(DateTime(timezone=True), nullable=True)
 
     merchant = relationship("Merchant", back_populates="devices")
@@ -84,9 +84,9 @@ class Device(TimestampMixin, Base):
 class DeviceApiKey(TimestampMixin, Base):
     __tablename__ = "device_api_keys"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id"), nullable=False, index=True)
-    key_hash = Column(String(255), nullable=False)  # PBKDF2-hashed
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    device_id = Column(UUID(as_uuid=False), ForeignKey("devices.id"), nullable=False, index=True)
+    key_hash = Column(String(255), nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
 
@@ -96,11 +96,11 @@ class DeviceApiKey(TimestampMixin, Base):
 class SmsLog(TimestampMixin, Base):
     __tablename__ = "sms_logs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    device_id = Column(UUID(as_uuid=True), ForeignKey("devices.id"), nullable=False, index=True)
-    merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=False, index=True)
-    request_id = Column(String(36), nullable=False, unique=True)  # replay protection
-    raw_sms_encrypted = Column(Text, nullable=False)              # AES-256-GCM ciphertext
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    device_id = Column(UUID(as_uuid=False), ForeignKey("devices.id"), nullable=False, index=True)
+    merchant_id = Column(UUID(as_uuid=False), ForeignKey("merchants.id"), nullable=False, index=True)
+    request_id = Column(String(36), nullable=False, unique=True)
+    raw_sms_encrypted = Column(Text, nullable=False)
     provider = Column(String(100), nullable=True, index=True)
     transaction_id = Column(String(255), nullable=True, index=True)
     amount = Column(Numeric(precision=15, scale=2), nullable=True)
@@ -111,7 +111,6 @@ class SmsLog(TimestampMixin, Base):
     sms_timestamp = Column(DateTime(timezone=True), nullable=False)
     parse_confidence = Column(Float, default=0.0, nullable=False)
     status = Column(String(50), default="unmatched", nullable=False, index=True)
-    # status: unmatched | matched | review_required | duplicate
 
     device = relationship("Device", back_populates="sms_logs")
     merchant = relationship("Merchant", back_populates="sms_logs")
@@ -127,18 +126,17 @@ class SmsLog(TimestampMixin, Base):
 class Invoice(TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "invoices"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=False, index=True)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    merchant_id = Column(UUID(as_uuid=False), ForeignKey("merchants.id"), nullable=False, index=True)
     invoice_number = Column(String(100), nullable=False, unique=True)
     amount = Column(Numeric(precision=15, scale=2), nullable=False)
     currency = Column(String(10), default="BDT", nullable=False)
     provider = Column(String(100), nullable=False, index=True)
     receiver_account = Column(String(255), nullable=True)
     status = Column(String(50), default="pending", nullable=False, index=True)
-    # status: pending | paid | review_required | unmatched | cancelled
     time_window_minutes = Column(Integer, default=30, nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=False)
-    invoice_metadata = Column("metadata", JSONB, nullable=True)  # custom merchant metadata
+    invoice_metadata = Column("metadata", JSONB, nullable=True)
 
     merchant = relationship("Merchant", back_populates="invoices")
     payment_matches = relationship("PaymentMatch", back_populates="invoice")
@@ -152,14 +150,13 @@ class Invoice(TimestampMixin, SoftDeleteMixin, Base):
 class PaymentMatch(TimestampMixin, Base):
     __tablename__ = "payment_matches"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    invoice_id = Column(UUID(as_uuid=True), ForeignKey("invoices.id"), nullable=False, index=True)
-    sms_log_id = Column(UUID(as_uuid=True), ForeignKey("sms_logs.id"), nullable=False, index=True)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    invoice_id = Column(UUID(as_uuid=False), ForeignKey("invoices.id"), nullable=False, index=True)
+    sms_log_id = Column(UUID(as_uuid=False), ForeignKey("sms_logs.id"), nullable=False, index=True)
     confidence_score = Column(Float, nullable=False)
     scoring_breakdown = Column(JSONB, nullable=False)
     status = Column(String(50), default="pending", nullable=False)
-    # status: pending | approved | rejected
-    reviewed_by = Column(String(255), nullable=True)  # admin user email
+    reviewed_by = Column(String(255), nullable=True)
     matched_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
 
@@ -171,12 +168,11 @@ class PaymentMatch(TimestampMixin, Base):
 class Webhook(TimestampMixin, Base):
     __tablename__ = "webhooks"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=False, index=True)
-    payment_match_id = Column(UUID(as_uuid=True), ForeignKey("payment_matches.id"), nullable=True, index=True)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    merchant_id = Column(UUID(as_uuid=False), ForeignKey("merchants.id"), nullable=False, index=True)
+    payment_match_id = Column(UUID(as_uuid=False), ForeignKey("payment_matches.id"), nullable=True, index=True)
     payload = Column(JSONB, nullable=False)
     status = Column(String(50), default="pending", nullable=False, index=True)
-    # status: pending | delivered | failed | dead
     attempt_count = Column(Integer, default=0, nullable=False)
     next_retry_at = Column(DateTime(timezone=True), nullable=True)
     last_attempted_at = Column(DateTime(timezone=True), nullable=True)
@@ -192,17 +188,16 @@ class Webhook(TimestampMixin, Base):
 
 
 class AuditLog(Base):
-    """Immutable — no update/delete endpoints for this table."""
     __tablename__ = "audit_logs"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    actor_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    actor_id = Column(UUID(as_uuid=False), ForeignKey("users.id"), nullable=True, index=True)
     action = Column(String(100), nullable=False, index=True)
     resource_type = Column(String(100), nullable=True)
     resource_id = Column(String(255), nullable=True)
     ip_address = Column(INET, nullable=True)
     user_agent = Column(Text, nullable=True)
-    audit_metadata = Column("metadata", JSONB, nullable=True)  # renamed: metadata → audit_metadata
+    audit_metadata = Column("metadata", JSONB, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 
     actor = relationship("User", back_populates="audit_logs")
@@ -211,18 +206,17 @@ class AuditLog(Base):
 class ParserRule(TimestampMixin, Base):
     __tablename__ = "parser_rules"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=True, index=True)
-    # NULL merchant_id = global rule
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    merchant_id = Column(UUID(as_uuid=False), ForeignKey("merchants.id"), nullable=True, index=True)
     rule_id = Column(String(100), nullable=False, unique=True)
     provider = Column(String(100), nullable=False)
     sender_pattern = Column(String(500), nullable=False)
     message_pattern = Column(Text, nullable=False)
-    fields = Column(JSONB, nullable=False)   # {"amount": "group_1", ...}
+    fields = Column(JSONB, nullable=False)
     currency = Column(String(10), default="BDT", nullable=False)
     direction = Column(String(20), default="INBOUND", nullable=False)
     enabled = Column(Boolean, default=True, nullable=False)
-    etag = Column(String(64), nullable=True)  # for cache invalidation
+    etag = Column(String(64), nullable=True)
 
     merchant = relationship("Merchant", back_populates="parser_rules")
 
@@ -230,9 +224,9 @@ class ParserRule(TimestampMixin, Base):
 class ApiKey(TimestampMixin, Base):
     __tablename__ = "api_keys"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchants.id"), nullable=False, index=True)
-    key_hash = Column(String(255), nullable=False)  # SHA-256 hashed
+    id = Column(UUID(as_uuid=False), primary_key=True, default=gen_uuid)
+    merchant_id = Column(UUID(as_uuid=False), ForeignKey("merchants.id"), nullable=False, index=True)
+    key_hash = Column(String(255), nullable=False)
     label = Column(String(255), nullable=True)
     scope = Column(String(255), default="read:invoices,write:invoices", nullable=False)
     expires_at = Column(DateTime(timezone=True), nullable=True)
