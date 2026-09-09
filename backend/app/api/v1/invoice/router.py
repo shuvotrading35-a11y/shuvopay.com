@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
-
+from app.core.deps import get_current_user_optional
 import structlog
 from fastapi import APIRouter, Depends, Header
 from pydantic import BaseModel, field_validator
