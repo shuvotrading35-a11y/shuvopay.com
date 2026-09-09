@@ -134,10 +134,16 @@ def _generate_invoice_number() -> str:
 @router.post("/invoice", response_model=InvoiceOut)
 async def create_invoice(
     body: InvoiceCreateRequest,
-    user=Depends(get_current_user),
+    x_api_key: Annotated[str | None, Header()] = None,
+    user=Depends(get_current_user_optional),
     db: AsyncSession = Depends(get_db),
 ):
-    merchant = await _get_merchant_for_user(user, db)
+    if x_api_key:
+        merchant = await _get_merchant_by_api_key(x_api_key, db)
+    elif user:
+        merchant = await _get_merchant_for_user(user, db)
+    else:
+        raise UnauthorizedError("Auth required")
 
     expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=body.time_window_minutes
@@ -160,7 +166,7 @@ async def create_invoice(
     await db.flush()
 
     audit = AuditLog(
-        actor_id=user.id,
+        actor_id=user.id if user else None,
         action="invoice_created",
         resource_type="invoice",
         resource_id=str(invoice.id),
@@ -179,7 +185,6 @@ async def create_invoice(
     )
 
     return InvoiceOut.model_validate(invoice)
-
 
 # ─── Public Invoice ─────────────────────────────────────────────────────────
 
