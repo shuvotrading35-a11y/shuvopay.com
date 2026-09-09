@@ -43,6 +43,27 @@ async def get_current_user(
     return user
 
 
+async def get_current_user_optional(
+    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)],
+    db: AsyncSession = Depends(get_db),
+) -> User | None:
+    if not credentials:
+        return None
+    try:
+        payload = decode_token(credentials.credentials)
+    except Exception:
+        return None
+
+    if payload.get("type") != "access":
+        return None
+
+    user_id = payload.get("sub")
+    result = await db.execute(
+        select(User).where(User.id == user_id, User.deleted_at.is_(None), User.is_active == True)
+    )
+    return result.scalar_one_or_none()
+
+
 async def require_admin(user: User = Depends(get_current_user)) -> User:
     if user.role != "admin":
         raise ForbiddenError("Admin access required")
@@ -63,7 +84,6 @@ async def get_authenticated_device(
     if not x_device_key:
         raise UnauthorizedError("X-Device-Key header required")
 
-    # Load all active device keys and check in Python (PBKDF2 is not reversible)
     result = await db.execute(
         select(DeviceApiKey, Device)
         .join(Device, DeviceApiKey.device_id == Device.id)
@@ -73,7 +93,6 @@ async def get_authenticated_device(
 
     for key_row, device_row in rows:
         if verify_device_key(x_device_key, key_row.key_hash):
-            # Check expiry
             from datetime import datetime, timezone
             if key_row.expires_at and key_row.expires_at < datetime.now(timezone.utc):
                 raise UnauthorizedError("Device key expired")
@@ -96,6 +115,5 @@ async def replay_protection(
     if exists:
         raise HTTPException(status_code=409, detail="Duplicate request ID")
 
-    # Store for 24 hours
     await redis.setex(key, 86400, "1")
     return x_request_id
